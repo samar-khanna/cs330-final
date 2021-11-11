@@ -15,13 +15,21 @@ class ChexpertDataset(dataset.Dataset):
                         'Support Devices']
 
     def __init__(self, data_path, path_to_csv, num_support, num_query,
-                 sampling_strategy='random', im_size=(320, 320)):
+                 sampling_strategy='random', uncertain_strategy='positive', im_size=(320, 320)):
         self.data_path = data_path
         self.df = pd.read_csv(path_to_csv)
         self.num_support = num_support
         self.num_query = num_query
         self.im_size = im_size
         self.sampling_func = ChexpertDataset.get_sampling_func(sampling_strategy)
+        self.uncertain_func = ChexpertDataset.get_uncertain_func(uncertain_strategy)
+
+    @staticmethod
+    def get_uncertain_func(strategy):
+        if strategy == 'positive':
+            return ChexpertDataset.replace_with_positive
+        else:
+            raise NotImplementedError(f'Invalid strategy {strategy}')
 
     @staticmethod
     def get_sampling_func(strategy):
@@ -47,7 +55,10 @@ class ChexpertDataset(dataset.Dataset):
 
         # Valid image paths corresponding to at least one of the classes in unk_class_idxs
         valid_paths = self.df['Path'][class_valid_mask]
-        valid_labels = self.df[self.chexpert_targets[unk_class_idxs]][class_valid_mask]
+        valid_labels = self.df[self.chexpert_targets[unk_class_idxs]][class_valid_mask].values
+
+        # Replace uncertain labels
+        valid_labels = self.uncertain_func(valid_labels)
 
         inds = self.sampling_func(valid_labels, self.num_support + self.num_query)
         support_inds = inds[:self.num_support]
@@ -57,14 +68,14 @@ class ChexpertDataset(dataset.Dataset):
         images_support = [self.load_image(os.path.join(self.data_path, p))
                           for p in im_paths_support]
         images_support = np.array(images_support, dtype=np.float32)
-        labels_support = np.array(valid_labels[support_inds].values)
+        labels_support = np.array(valid_labels[support_inds])
         mask_support = np.isnan(labels_support)
 
         im_paths_query = valid_paths[query_inds]
         images_query = [self.load_image(os.path.join(self.data_path, p))
                           for p in im_paths_query]
         images_query = np.array(images_query, dtype=np.float32)
-        labels_query = np.array(valid_labels[query_inds].values)
+        labels_query = np.array(valid_labels[query_inds])
         mask_query = np.isnan(labels_query)
 
         return torch.from_numpy(images_support), torch.from_numpy(labels_support), torch.from_numpy(mask_support), \
@@ -79,6 +90,11 @@ class ChexpertDataset(dataset.Dataset):
     def random_sampling(labels, num_samples):
         inds = np.random.choice(len(labels), size=num_samples, replace=False)
         return inds
+
+    @staticmethod
+    def replace_with_positive(labels):
+        labels[labels == -1] = 1
+        return labels
 
 
 
