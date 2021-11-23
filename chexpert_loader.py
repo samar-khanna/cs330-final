@@ -45,7 +45,7 @@ class ChexpertDataset(dataset.Dataset):
         :return:
         """
         # TODO: Fix for alpha-beta
-        known_class_idxs, unk_class_idxs = [], class_idxs
+        known_class_idxs, unk_class_idxs = [], class_idxs  # (K,) and (U,)
 
         # Bool mask indicating non-nan rows for at least one of the classes in unk_class
         class_valid_mask = np.zeros(len(self.df), dtype=np.bool)
@@ -55,10 +55,11 @@ class ChexpertDataset(dataset.Dataset):
 
         # Valid image paths corresponding to at least one of the classes in unk_class_idxs
         valid_paths = self.df['Path'][class_valid_mask]
-        valid_labels = self.df[self.chexpert_targets[unk_class_idxs]][class_valid_mask].values
+        chexpert_classes = [self.chexpert_targets[c] for c in unk_class_idxs]
+        valid_labels = self.df[chexpert_classes][class_valid_mask].values  # (N, U)
 
         # Replace uncertain labels
-        valid_labels = self.uncertain_func(valid_labels)
+        valid_labels = self.uncertain_func(valid_labels)  # (N, U)
 
         inds = self.sampling_func(valid_labels, self.num_support + self.num_query)
         support_inds = inds[:self.num_support]
@@ -68,15 +69,15 @@ class ChexpertDataset(dataset.Dataset):
         images_support = [self.load_image(os.path.join(self.data_path, p))
                           for p in im_paths_support]
         images_support = np.array(images_support, dtype=np.float32)
-        labels_support = np.array(valid_labels[support_inds])
-        mask_support = np.isnan(labels_support)
+        labels_support = np.array(valid_labels[support_inds])  # (n_s, U)
+        mask_support = ~np.isnan(labels_support)  # (n_s, U)
 
         im_paths_query = valid_paths[query_inds]
         images_query = [self.load_image(os.path.join(self.data_path, p))
                           for p in im_paths_query]
         images_query = np.array(images_query, dtype=np.float32)
-        labels_query = np.array(valid_labels[query_inds])
-        mask_query = np.isnan(labels_query)
+        labels_query = np.array(valid_labels[query_inds])  # (n_q, U)
+        mask_query = ~np.isnan(labels_query)  # (n_q, U)
 
         return torch.from_numpy(images_support), torch.from_numpy(labels_support), torch.from_numpy(mask_support), \
             torch.from_numpy(images_query), torch.from_numpy(labels_query), torch.from_numpy(mask_query)
@@ -96,9 +97,6 @@ class ChexpertDataset(dataset.Dataset):
     def replace_with_positive(labels):
         labels[labels == -1] = 1
         return labels
-
-
-
 
 
 # TODO: Code from HW2
@@ -128,8 +126,10 @@ class ChexpertSampler(sampler.Sampler):
     def __len__(self):
         return self._num_tasks
 
+
 def identity(x):
     return x
+
 
 def get_chexpert_dataloader(
         data_path,
@@ -141,37 +141,38 @@ def get_chexpert_dataloader(
         num_tasks_per_epoch,
         test_classes=None
 ):
-    """Returns a dataloader.DataLoader for Omniglot.
-
-    Args:
-        split (str): one of 'train', 'val', 'test'
-        batch_size (int): number of tasks per batch
-        num_way (int): number of classes per task
-        num_support (int): number of support examples per class
-        num_query (int): number of query examples per class
-        num_tasks_per_epoch (int): number of tasks before DataLoader is
-            exhausted
+    """
+    Returns the train/val/test dataloaders for Chexpert
+    :param data_path: Path to source directory with datasets
+    :param batch_size: Size of each mini-batch
+    :param num_test_class: Number of classes to withold in meta-test
+    :param num_targets_per_task: Number of novel classes to learn per task
+    :param num_support: Number of instances in support dataset
+    :param num_query: Number of instances in query dataset
+    :param num_tasks_per_epoch: Number of tasks to sample per training epoch
+    :param test_classes: Hard set the indices of the test diseases
+    :return: train/val/test dataloaders
     """
 
-    train_dataset = OmniglotDataset(data_path,
+    train_dataset = ChexpertDataset(data_path,
                                     os.path.join(data_path, 'train.csv'),
                                     num_support, 
                                     num_query)
     # TODO: Add validation dataset
 
-    test_dataset = OmniglotDataset(data_path,
+    test_dataset = ChexpertDataset(data_path,
                                    os.path.join(data_path, 'valid.csv'),
                                    num_support, 
                                    num_query)
     
-    if test_classes:
+    if test_classes is not None:
         raise NotImplementedError
     else:
         classes = ChexpertDataset.chexpert_targets
         test_idxs = np.random.choice(len(classes), num_test_class, replace=False)
         train_idxs = [i for i in range(len(classes)) if i not in test_idxs]       
 
-    train_dataloader = dataloader.DataLoader(
+    train_loader = dataloader.DataLoader(
         dataset=train_dataset,
         batch_size=batch_size,
         sampler=ChexpertSampler(train_idxs, num_targets_per_task, num_tasks_per_epoch),
@@ -181,7 +182,7 @@ def get_chexpert_dataloader(
         drop_last=True
     )
 
-    test_dataloader = dataloader.DataLoader(
+    test_loader = dataloader.DataLoader(
         dataset=test_dataset,
         batch_size=batch_size,
         sampler=ChexpertSampler(test_idxs, num_targets_per_task, num_tasks_per_epoch),
@@ -190,5 +191,5 @@ def get_chexpert_dataloader(
         pin_memory=torch.cuda.is_available(),
         drop_last=True
     )
-    return train_loader, test_loader
+    return train_loader, test_loader, test_idxs
 
