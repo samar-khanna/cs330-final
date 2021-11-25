@@ -18,6 +18,8 @@ class ChexpertDataset(dataset.Dataset):
                  sampling_strategy='random', uncertain_strategy='positive', im_size=(320, 320)):
         self.data_path = data_path
         self.df = pd.read_csv(path_to_csv)
+        self.df['Path'] = self.df['Path'].apply(lambda p: p.replace('CheXpert-v1.0-small/', ''))
+        
         self.num_support = num_support
         self.num_query = num_query
         self.im_size = im_size
@@ -74,7 +76,7 @@ class ChexpertDataset(dataset.Dataset):
 
         im_paths_query = valid_paths[query_inds]
         images_query = [self.load_image(os.path.join(self.data_path, p))
-                          for p in im_paths_query]
+                        for p in im_paths_query]
         images_query = np.array(images_query, dtype=np.float32)
         labels_query = np.array(valid_labels[query_inds])  # (n_q, U)
         mask_query = ~np.isnan(labels_query)  # (n_q, U)
