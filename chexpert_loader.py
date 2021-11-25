@@ -70,14 +70,14 @@ class ChexpertDataset(dataset.Dataset):
         im_paths_support = valid_paths[support_inds]
         images_support = [self.load_image(os.path.join(self.data_path, p))
                           for p in im_paths_support]
-        images_support = np.array(images_support, dtype=np.float32)
+        images_support = np.array(images_support, dtype=np.float32)  # (n_s, 1, h, w)
         labels_support = np.array(valid_labels[support_inds])  # (n_s, U)
         mask_support = ~np.isnan(labels_support)  # (n_s, U)
 
         im_paths_query = valid_paths[query_inds]
         images_query = [self.load_image(os.path.join(self.data_path, p))
                         for p in im_paths_query]
-        images_query = np.array(images_query, dtype=np.float32)
+        images_query = np.array(images_query, dtype=np.float32)  # (n_q, 1, h, w)
         labels_query = np.array(valid_labels[query_inds])  # (n_q, U)
         mask_query = ~np.isnan(labels_query)  # (n_q, U)
 
@@ -88,7 +88,7 @@ class ChexpertDataset(dataset.Dataset):
         # TODO: Should we normalize??
         im = Image.open(im_path)
         im = im.resize(self.im_size, Image.BILINEAR)
-        return np.array(im)/255
+        return np.array(im)[np.newaxis, ...]/255
 
     @staticmethod
     def random_sampling(labels, num_samples):
