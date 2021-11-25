@@ -388,7 +388,7 @@ def main(args):
     diseases = chexpert_loader.ChexpertDataset.chexpert_targets
     if not args.test:
         print(
-            f'Num test classes {args.num_test}: {[diseases[i] for i in test_idxs]}'
+            f'Num test classes {args.num_test}: {[diseases[i] for i in test_idxs]}\n'
             f'Training on {args.num_tasks} tasks per epoch with composition: '
             f'num_targets_per_task={args.num_targets}, '
             f'num_support={args.num_support}, '

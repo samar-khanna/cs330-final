@@ -54,7 +54,7 @@ class ChexpertDataset(dataset.Dataset):
             class_valid_mask = class_valid_mask | ~np.isnan(class_col)
 
         # Valid image paths corresponding to at least one of the classes in unk_class_idxs
-        valid_paths = self.df['Path'][class_valid_mask]
+        valid_paths = self.df['Path'][class_valid_mask].values
         chexpert_classes = [self.chexpert_targets[c] for c in unk_class_idxs]
         valid_labels = self.df[chexpert_classes][class_valid_mask].values  # (N, U)
 
