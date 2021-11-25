@@ -15,7 +15,7 @@ class ChexpertDataset(dataset.Dataset):
                         'Support Devices']
 
     def __init__(self, data_path, path_to_csv, num_support, num_query,
-                 sampling_strategy='random', uncertain_strategy='positive', im_size=(224, 224)):
+                 sampling_strategy='random', uncertain_strategy='positive', im_size=(160, 160)):
         self.data_path = data_path
         self.df = pd.read_csv(path_to_csv)
         self.df['Path'] = self.df['Path'].apply(lambda p: p.replace('CheXpert-v1.0-small/', ''))

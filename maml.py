@@ -95,6 +95,7 @@ class MAML:
         :param keep_mask:
         :return:
         """
+        gt = gt.clone()
         gt[~keep_mask] = 0.  # Arbitrary since these are masked out anyhoo
         unreduced = F.binary_cross_entropy_with_logits(pred, gt, reduction='none')
         loss = unreduced * keep_mask
