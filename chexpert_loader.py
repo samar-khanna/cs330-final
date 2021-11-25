@@ -19,7 +19,7 @@ class ChexpertDataset(dataset.Dataset):
         self.data_path = data_path
         self.df = pd.read_csv(path_to_csv)
         self.df['Path'] = self.df['Path'].apply(lambda p: p.replace('CheXpert-v1.0-small/', ''))
-        
+
         self.num_support = num_support
         self.num_query = num_query
         self.im_size = im_size
@@ -88,7 +88,7 @@ class ChexpertDataset(dataset.Dataset):
         # TODO: Should we normalize??
         im = Image.open(im_path)
         im = im.resize(self.im_size, Image.BILINEAR)
-        return np.array(im/255)
+        return np.array(im)/255
 
     @staticmethod
     def random_sampling(labels, num_samples):
