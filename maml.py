@@ -385,9 +385,10 @@ def main(args):
         args.num_support, args.num_query, args.num_tasks, test_classes=args.test_classes
     )
 
+    diseases = chexpert_loader.ChexpertDataset.chexpert_targets
     if not args.test:
         print(
-            f'Num test classes {args.num_test}: {chexpert_loader.ChexpertDataset.chexpert_targets[test_idxs]}'
+            f'Num test classes {args.num_test}: {[diseases[i] for i in test_idxs]}'
             f'Training on {args.num_tasks} tasks per epoch with composition: '
             f'num_targets_per_task={args.num_targets}, '
             f'num_support={args.num_support}, '
@@ -397,7 +398,7 @@ def main(args):
         maml.train(train_loader, test_loader, writer)
     else:
         print(
-            f'Num test classes {args.num_test}: {chexpert_loader.ChexpertDataset.chexpert_targets[test_idxs]}'
+            f'Num test classes {args.num_test}: {[diseases[i] for i in test_idxs]}'
             f'num_targets_per_task={args.num_targets}, '
             f'num_support={args.num_support}, '
             f'num_query={args.num_query}'
