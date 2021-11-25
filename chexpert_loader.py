@@ -140,7 +140,8 @@ def get_chexpert_dataloader(
         num_targets_per_task,
         num_support,
         num_query,
-        num_tasks_per_epoch,
+        num_tasks_per_train_epoch,
+        num_tasks_per_test_epoch,
         test_classes=None
 ):
     """
@@ -151,7 +152,8 @@ def get_chexpert_dataloader(
     :param num_targets_per_task: Number of novel classes to learn per task
     :param num_support: Number of instances in support dataset
     :param num_query: Number of instances in query dataset
-    :param num_tasks_per_epoch: Number of tasks to sample per training epoch
+    :param num_tasks_per_train_epoch: Number of tasks to sample per training epoch
+    :param num_tasks_per_test_epoch: Number of tasks to sample per testing epoch
     :param test_classes: Hard set the indices of the test diseases
     :return: train/val/test dataloaders
     """
@@ -177,7 +179,7 @@ def get_chexpert_dataloader(
     train_loader = dataloader.DataLoader(
         dataset=train_dataset,
         batch_size=batch_size,
-        sampler=ChexpertSampler(train_idxs, num_targets_per_task, num_tasks_per_epoch),
+        sampler=ChexpertSampler(train_idxs, num_targets_per_task, num_tasks_per_train_epoch),
         num_workers=2,
         collate_fn=identity,
         pin_memory=torch.cuda.is_available(),
@@ -187,7 +189,7 @@ def get_chexpert_dataloader(
     test_loader = dataloader.DataLoader(
         dataset=test_dataset,
         batch_size=batch_size,
-        sampler=ChexpertSampler(test_idxs, num_targets_per_task, num_tasks_per_epoch),
+        sampler=ChexpertSampler(test_idxs, num_targets_per_task, num_tasks_per_test_epoch),
         num_workers=2,
         collate_fn=identity,
         pin_memory=torch.cuda.is_available(),

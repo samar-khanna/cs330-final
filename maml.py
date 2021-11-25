@@ -381,9 +381,11 @@ def main(args):
     else:
         print('Checkpoint loading skipped.')
 
+    num_training_tasks = args.batch_size * (args.num_tasks - args.checkpoint_step - 1)
+    num_testing_tasks = args.batch_size * 8
     train_loader, test_loader, test_idxs = chexpert_loader.get_chexpert_dataloader(
         args.data_path, args.batch_size, args.num_test, args.num_targets,
-        args.num_support, args.num_query, args.num_tasks, test_classes=args.test_classes
+        args.num_support, args.num_query, num_training_tasks, num_testing_tasks, test_classes=args.test_classes
     )
 
     diseases = chexpert_loader.ChexpertDataset.chexpert_targets
@@ -404,7 +406,7 @@ def main(args):
             f'num_support={args.num_support}, '
             f'num_query={args.num_query}'
         )
-        maml.test(test_loader, args.num_tasks)
+        maml.test(test_loader, num_testing_tasks)
 
 
 if __name__ == '__main__':
@@ -422,10 +424,10 @@ if __name__ == '__main__':
                         help='Total number of samples for task support dataset')
     parser.add_argument('--num_query', type=int, default=16,
                         help='Total number of samples for task support dataset')
-    parser.add_argument('--num_tasks', type=int, default=16,
-                        help='Total number of tasks to sample for each epoch')
-    parser.add_argument('--num_train_iterations', type=int, default=15000,
-                        help='number of outer-loop updates to train for')
+    parser.add_argument('--num_tasks', type=int, default=4000,
+                        help='Total number of tasks to sample for training (eqv: num_train_iter)')
+    # parser.add_argument('--num_train_iterations', type=int, default=4000,
+    #                     help='number of outer-loop updates to train for')
 
     parser.add_argument('--test_classes', default=None, type=int, nargs='+',
                         help='Specify indices of custom test classes to hold out')
