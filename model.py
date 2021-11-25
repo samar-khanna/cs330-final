@@ -5,6 +5,23 @@ import torch.nn.functional as F
 
 def conv_model(num_conv_layers, num_in_channels, num_hidden_channels, num_outputs,
                kernel_size, device):
+    """
+    The network consists of four convolutional blocks followed by a linear
+    head layer. Each convolutional block comprises a convolution layer, a
+    batch normalization layer, and ReLU activation.
+
+    Note that unlike conventional use, batch normalization is always done
+    with batch statistics, regardless of whether we are training or
+    evaluating. This technically makes meta-learning transductive, as
+    opposed to inductive.
+    :param num_conv_layers:
+    :param num_in_channels:
+    :param num_hidden_channels:
+    :param num_outputs:
+    :param kernel_size:
+    :param device:
+    :return:
+    """
     meta_parameters = {}
 
     # construct feature extractor
