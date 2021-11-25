@@ -37,27 +37,15 @@ class MAML:
             outer_lr,
             log_dir
     ):
-        """Inits MAML.
-
-        The network consists of four convolutional blocks followed by a linear
-        head layer. Each convolutional block comprises a convolution layer, a
-        batch normalization layer, and ReLU activation.
-
-        Note that unlike conventional use, batch normalization is always done
-        with batch statistics, regardless of whether we are training or
-        evaluating. This technically makes meta-learning transductive, as
-        opposed to inductive.
-
-        Args:
-            num_outputs (int): dimensionality of output, i.e. number of classes
-                in a task
-            num_inner_steps (int): number of inner-loop optimization steps
-            inner_lr (float): learning rate for inner-loop optimization
-                If learn_inner_lrs=True, inner_lr serves as the initialization
-                of the learning rates.
-            learn_inner_lrs (bool): whether to learn the above
-            outer_lr (float): learning rate for outer-loop optimization
-            log_dir (str): path to logging directory
+        """
+        Inits MAML (vanilla) for multi-label few-shot novel disease detection
+        :param num_outputs: Number of output channels in final layer of network (eqv to #novel classes)
+        :param num_inner_steps: Number of inner-loop optimization steps
+        :param inner_lr: learning rate for inner-loop optimization
+        If learn_inner_lrs=True, inner_lr serves as the initialization of the learning rates.
+        :param learn_inner_lrs: whether to learn the above
+        :param outer_lr: learning rate for outer-loop optimization
+        :param log_dir: path to logging directory
         """
         # TODO: Make genralisable to new models
         params, forward_fn = conv_model(
@@ -100,6 +88,13 @@ class MAML:
         return self._forward_func(images, parameters)
 
     def _loss(self, pred, gt, keep_mask):
+        """
+        Computes
+        :param pred:
+        :param gt:
+        :param keep_mask:
+        :return:
+        """
         gt[~keep_mask] = 0.  # Arbitrary since these are masked out anyhoo
         unreduced = F.binary_cross_entropy_with_logits(pred, gt, reduction='none')
         loss = unreduced * keep_mask
@@ -134,12 +129,12 @@ class MAML:
             for (k, p), g in zip(parameters.items(), grad):
                 parameters[k] = p - self._inner_lrs[k]*g
 
-            score = util.score(out, labels)
+            score = util.score(out, labels, keep_mask)
             accuracies.append(score)
 
         # Final for calculating last score
         out = self._forward(images, parameters)
-        score = util.score(out, labels)
+        score = util.score(out, labels, keep_mask)
         accuracies.append(score)
 
         return parameters, accuracies
@@ -183,7 +178,7 @@ class MAML:
             out = self._forward(images_query, phi)  # (N*Kq, N)
             loss = self._loss(out, labels_query, mask_query)
 
-            query_acc = util.score(out, labels_query)
+            query_acc = util.score(out, labels_query, mask_query)
 
             outer_loss_batch.append(loss)
             accuracies_support_batch.append(accuracies)
@@ -364,7 +359,10 @@ class MAML:
 def main(args):
     log_dir = args.log_dir
     if log_dir is None:
-        log_dir = f'./logs/maml/chexpert.way:{args.num_way}.support:{args.num_support}.query:{args.num_query}.inner_steps:{args.num_inner_steps}.inner_lr:{args.inner_lr}.learn_inner_lrs:{args.learn_inner_lrs}.outer_lr:{args.outer_lr}.batch_size:{args.batch_size}'  # pylint: disable=line-too-long
+        log_dir = f'./logs/maml/chexpert.test:{args.num_test}.targets:{args.num_targets}.tasks:{args.num_tasks}' \
+                  f'.support:{args.num_support}.query:{args.num_query}.inner_steps:{args.num_inner_steps}' \
+                  f'.inner_lr:{args.inner_lr}.learn_inner_lrs:{args.learn_inner_lrs}.outer_lr:{args.outer_lr}' \
+                  f'.batch_size:{args.batch_size}'
     print(f'log_dir: {log_dir}')
     writer = tensorboard.SummaryWriter(log_dir=log_dir)
 
