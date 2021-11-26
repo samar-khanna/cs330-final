@@ -48,11 +48,11 @@ class KTargetSampler(TargetSampler):
         return inds
 
 
-def get_target_sampler(strategy: str) -> Type[TargetSampler]:
+def get_target_sampler(strategy: str, **kwargs) -> TargetSampler:
     if 'random' in strategy.lower():
-        return RandomTargetSampler
+        return RandomTargetSampler()
     elif 'at_least_k' in strategy.lower():
-        return KTargetSampler
+        return KTargetSampler(**kwargs)
     else:
         raise NotImplementedError(f"Invalid target sampling strategy: {strategy}")
 
@@ -79,8 +79,8 @@ class ReplaceWithPositive(UncertainCleaner):
         return labels
 
 
-def get_uncertain_cleaner(strategy) -> Type[UncertainCleaner]:
+def get_uncertain_cleaner(strategy) -> UncertainCleaner:
     if 'positive' in strategy.lower():
-        return ReplaceWithPositive
+        return ReplaceWithPositive()
     else:
         raise NotImplementedError(f"Invalid uncertain cleaning strategy: {strategy}")
