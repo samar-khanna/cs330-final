@@ -155,13 +155,14 @@ def get_chexpert_dataloader(
                                    num_query,
                                    uncertain_cleaner=uncertain_cleaner,
                                    target_sampler=target_sampler)
-    
+
+    classes = ChexpertDataset.chexpert_targets
     if test_classes is not None:
-        raise NotImplementedError
+        test_idxs = test_classes
     else:
-        classes = ChexpertDataset.chexpert_targets
         test_idxs = np.random.choice(len(classes), num_test_class, replace=False)
-        train_idxs = [i for i in range(len(classes)) if i not in test_idxs]       
+
+    train_idxs = [i for i in range(len(classes)) if i not in test_idxs]
 
     train_loader = dataloader.DataLoader(
         dataset=train_dataset,
