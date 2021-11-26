@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from torch import autograd  # pylint: disable=unused-import
 from torch.utils import tensorboard
 
-import util
+import trainer_utils
 import chexpert_loader
 from model import conv_model
 
@@ -121,12 +121,12 @@ class MAML:
             for (k, p), g in zip(parameters.items(), grad):
                 parameters[k] = p - self._inner_lrs[k]*g
 
-            score = util.score(out, labels, keep_mask)
+            score = trainer_utils.score(out, labels, keep_mask)
             accuracies.append(score)
 
         # Calculate final post adaptation score
         out = self._forward(images, parameters)
-        score = util.score(out, labels, keep_mask)
+        score = trainer_utils.score(out, labels, keep_mask)
         accuracies.append(score)
 
         return parameters, accuracies
@@ -159,14 +159,14 @@ class MAML:
             labels_query = labels_query.to(DEVICE)
             mask_query = mask_query.to(DEVICE)
 
-            self._optimizer.zero_grad()
+            # self._optimizer.zero_grad()
 
             phi, accuracies = self._inner_loop(images_support, labels_support, mask_support, train)
 
             out = self._forward(images_query, phi)  # (N*Kq, N)
             loss = self._loss(out, labels_query, mask_query)
 
-            query_acc = util.score(out, labels_query, mask_query)
+            query_acc = trainer_utils.score(out, labels_query, mask_query)
 
             outer_loss_batch.append(loss)
             accuracies_support_batch.append(accuracies)
@@ -183,7 +183,7 @@ class MAML:
     def train(self, dataloader_train, dataloader_val, writer):
         """
         Train MAML.
-            Consmes dataloader_train to optimize MAML meta-parameters
+        Consmes dataloader_train to optimize MAML meta-parameters
         while periodically validating on dataloader_val, logging metrics, and
         saving checkpoints.
         :param [Dataloader] dataloader_train: Loader for training tasks
