@@ -6,6 +6,8 @@ import pandas as pd
 from PIL import Image
 from torch.utils.data import dataset, sampler, dataloader
 
+from chexpert_utils import get_uncertain_cleaner, get_target_sampler
+
 
 class ChexpertDataset(dataset.Dataset):
     chexpert_targets = ['No Finding',
@@ -15,7 +17,7 @@ class ChexpertDataset(dataset.Dataset):
                         'Support Devices']
 
     def __init__(self, data_path, path_to_csv, num_support, num_query,
-                 sampling_strategy='random', uncertain_strategy='positive', im_size=(160, 160)):
+                 uncertain_cleaner, target_sampler, im_size=(128, 128)):
         self.data_path = data_path
         self.df = pd.read_csv(path_to_csv)
         self.df['Path'] = self.df['Path'].apply(lambda p: p.replace('CheXpert-v1.0-small/', ''))
@@ -23,22 +25,8 @@ class ChexpertDataset(dataset.Dataset):
         self.num_support = num_support
         self.num_query = num_query
         self.im_size = im_size
-        self.sampling_func = ChexpertDataset.get_sampling_func(sampling_strategy)
-        self.uncertain_func = ChexpertDataset.get_uncertain_func(uncertain_strategy)
-
-    @staticmethod
-    def get_uncertain_func(strategy):
-        if strategy == 'positive':
-            return ChexpertDataset.replace_with_positive
-        else:
-            raise NotImplementedError(f'Invalid strategy {strategy}')
-
-    @staticmethod
-    def get_sampling_func(strategy):
-        if strategy == 'random':
-            return ChexpertDataset.random_sampling
-        else:
-            raise NotImplementedError(f'Invalid strategy {strategy}')
+        self.target_sampler = target_sampler
+        self.uncertain_cleaner = uncertain_cleaner
 
     def __getitem__(self, class_idxs):
         """
@@ -61,9 +49,9 @@ class ChexpertDataset(dataset.Dataset):
         valid_labels = self.df[chexpert_classes][class_valid_mask].values  # (N, U)
 
         # Replace uncertain labels
-        valid_labels = self.uncertain_func(valid_labels)  # (N, U)
+        valid_labels = self.uncertain_cleaner.clean(valid_labels)  # (N, U)
 
-        inds = self.sampling_func(valid_labels, self.num_support + self.num_query)
+        inds = self.target_sampler.sample(valid_labels, self.num_support + self.num_query)
         support_inds = inds[:self.num_support]
         query_inds = inds[self.num_support:]
 
@@ -89,16 +77,6 @@ class ChexpertDataset(dataset.Dataset):
         im = Image.open(im_path)
         im = im.resize(self.im_size, Image.BILINEAR)
         return np.array(im)[np.newaxis, ...]/255
-
-    @staticmethod
-    def random_sampling(labels, num_samples):
-        inds = np.random.choice(len(labels), size=num_samples, replace=False)
-        return inds
-
-    @staticmethod
-    def replace_with_positive(labels):
-        labels[labels == -1] = 1
-        return labels
 
 
 # TODO: Code from HW2
@@ -142,6 +120,8 @@ def get_chexpert_dataloader(
         num_query,
         num_tasks_per_train_epoch,
         num_tasks_per_test_epoch,
+        uncertain_strategy='positive',
+        target_sampler_strategy='at_least_k',
         test_classes=None
 ):
     """
@@ -154,20 +134,27 @@ def get_chexpert_dataloader(
     :param num_query: Number of instances in query dataset
     :param num_tasks_per_train_epoch: Number of tasks to sample per training epoch
     :param num_tasks_per_test_epoch: Number of tasks to sample per testing epoch
+    :param uncertain_strategy: String specifying how to replace -1. uncertain labels in dataset
+    :param target_sampler_strategy: Specify how to sample valid instances for each task/set of diseases
     :param test_classes: Hard set the indices of the test diseases
     :return: train/val/test dataloaders
     """
-
+    uncertain_cleaner = get_uncertain_cleaner(uncertain_strategy)
+    target_sampler = get_target_sampler(target_sampler_strategy)
     train_dataset = ChexpertDataset(data_path,
                                     os.path.join(data_path, 'train.csv'),
                                     num_support, 
-                                    num_query)
+                                    num_query,
+                                    uncertain_cleaner=uncertain_cleaner,
+                                    target_sampler=target_sampler)
     # TODO: Add validation dataset
 
     test_dataset = ChexpertDataset(data_path,
                                    os.path.join(data_path, 'valid.csv'),
                                    num_support, 
-                                   num_query)
+                                   num_query,
+                                   uncertain_cleaner=uncertain_cleaner,
+                                   target_sampler=target_sampler)
     
     if test_classes is not None:
         raise NotImplementedError
