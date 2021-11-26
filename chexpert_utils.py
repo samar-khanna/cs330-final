@@ -39,7 +39,7 @@ class KTargetSampler(TargetSampler):
         :return: (num_samples,) indices in labels that form the task
         """
         valid = np.sum(~np.isnan(labels), axis=1) >= self.k
-        possible = np.nonzero(valid)
+        possible, = np.nonzero(valid)
         if len(possible) >= num_samples:
             inds = np.random.choice(possible, size=num_samples, replace=False)
         else:
