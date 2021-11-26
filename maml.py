@@ -385,7 +385,9 @@ def main(args):
     num_testing_tasks = args.batch_size * 8
     train_loader, test_loader, test_idxs = chexpert_loader.get_chexpert_dataloader(
         args.data_path, args.batch_size, args.num_test, args.num_targets,
-        args.num_support, args.num_query, num_training_tasks, num_testing_tasks, test_classes=args.test_classes
+        args.num_support, args.num_query, num_training_tasks, num_testing_tasks,
+        uncertain_strategy=args.uncertain_cleaner, target_sampler_strategy=args.target_sampler,
+        test_classes=args.test_classes
     )
 
     diseases = chexpert_loader.ChexpertDataset.chexpert_targets
@@ -431,6 +433,11 @@ if __name__ == '__main__':
 
     parser.add_argument('--test_classes', default=None, type=int, nargs='+',
                         help='Specify indices of custom test classes to hold out')
+    parser.add_argument('--uncertain_cleaner', default='positive', type=str,
+                        help='Specify how to replace uncertain targets in dataset')
+    parser.add_argument('--target_sampler', default='at_least_k', type=str,
+                        help='Specify how to sample targets for a task')
+
     parser.add_argument('--num_inner_steps', type=int, default=1,
                         help='number of inner-loop updates')
     parser.add_argument('--inner_lr', type=float, default=0.1,
@@ -441,6 +448,7 @@ if __name__ == '__main__':
                         help='outer-loop learning rate')
     parser.add_argument('--batch_size', type=int, default=16,
                         help='number of tasks per outer-loop update')
+
     parser.add_argument('--test', default=False, action='store_true',
                         help='train or test')
     parser.add_argument('--checkpoint_step', type=int, default=-1,
