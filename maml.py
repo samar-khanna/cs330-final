@@ -122,6 +122,11 @@ class MAML:
             for k, v in self._meta_parameters.items()
         }
 
+        # Calculate initial score
+        out = self._forward(images, parameters)
+        score = util.score(out, labels, keep_mask)
+        accuracies.append(score)
+
         for i in range(self._num_inner_steps):
             out = self._forward(images, parameters)  # (N_s, U)
             loss = self._loss(out, labels, keep_mask)
@@ -132,11 +137,6 @@ class MAML:
 
             score = util.score(out, labels, keep_mask)
             accuracies.append(score)
-
-        # Final for calculating last score
-        out = self._forward(images, parameters)
-        score = util.score(out, labels, keep_mask)
-        accuracies.append(score)
 
         return parameters, accuracies
 
