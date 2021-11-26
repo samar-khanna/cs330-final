@@ -48,9 +48,10 @@ class ChexpertDataset(dataset.Dataset):
         chexpert_classes = [self.chexpert_targets[c] for c in unk_class_idxs]
         valid_labels = self.df[chexpert_classes][class_valid_mask].values  # (N, U)
 
-        # Replace uncertain labels
+        # Replace uncertain labels (i.e. those with -1)
         valid_labels = self.uncertain_cleaner.clean(valid_labels)  # (N, U)
 
+        # Sample num_support + num_query rows (i.e. image-label pairs) according to sampling strategy
         inds = self.target_sampler.sample(valid_labels, self.num_support + self.num_query)
         support_inds = inds[:self.num_support]
         query_inds = inds[self.num_support:]

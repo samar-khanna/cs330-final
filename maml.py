@@ -73,27 +73,21 @@ class MAML:
         self._start_train_step = 0
 
     def _forward(self, images, parameters):
-        """Computes predicted classification logits.
-
-        Args:
-            images (Tensor): batch of Omniglot images
-                shape (num_images, channels, height, width)
-            parameters (dict[str, Tensor]): parameters to use for
-                the computation
-
-        Returns:
-            a Tensor consisting of a batch of logits
-                shape (num_images, classes)
+        """
+        Computes predicted classification logits.
+        :param [Tensor] images: (N, c, h, w) batch of Chexpert images
+        :param [dict[str, Tensor]] parameters: parameters to use for the computation
+        :return: (N, num_targets) Tensor consisting of batch of logits
         """
         return self._forward_func(images, parameters)
 
     def _loss(self, pred, gt, keep_mask):
         """
-        Computes
-        :param pred:
-        :param gt:
-        :param keep_mask:
-        :return:
+        Computes masked binary cross entropy loss, ignoring the loss on invalid labels
+        :param [Tensor] pred: (N, n_t) model predicted logits
+        :param [Tensor] gt: (N, n_t) Ground truth labels
+        :param [Tensor] keep_mask: (N, n_t) Boolean mask of which ground truth labels are valid for loss
+        :return: Scalar mean loss value
         """
         gt = gt.clone()
         gt[~keep_mask] = 0.  # Arbitrary since these are masked out anyhoo
@@ -102,16 +96,13 @@ class MAML:
         return loss.mean()
 
     def _inner_loop(self, images, labels, keep_mask, train):   # pylint: disable=unused-argument
-        """Computes the adapted network parameters via the MAML inner loop.
-
-        Args:
-            images (Tensor): task support set inputs
-                shape (num_images, channels, height, width)
-            labels (Tensor): task support set outputs
-                shape (num_images,)
-            train (bool): whether we are training or evaluating
-
-        Returns:
+        """
+        Computes adapted network parameters via MAML inner loop
+        :param images: (N_s, c, h, w) Task support set inputs
+        :param labels: (N_s, n_t) Task support set labels (i.e. targets)
+        :param keep_mask: (N_s, n_t) Boolean mask of valid labels for which to compute loss
+        :param train: Whether we are training or evaluating
+        :return:
             parameters (dict[str, Tensor]): adapted network parameters
             accuracies (list[float]): support set accuracy over the course of
                 the inner loop, length num_inner_steps + 1
@@ -141,19 +132,15 @@ class MAML:
         return parameters, accuracies
 
     def _outer_step(self, task_batch, train):  # pylint: disable=unused-argument
-        """Computes the MAML loss and metrics on a batch of tasks.
-
-        Args:
-            task_batch (tuple): batch of tasks from an Omniglot DataLoader
-            train (bool): whether we are training or evaluating
-
-        Returns:
+        """
+        Computer MAML loss and metrics on batch of tasks
+        :param [Tuple] task_batch: Batch of tasks (each task is subset of diseases) from Chexpert DataLoader
+        :param [bool] train: Whether we are training or evaluating
+        :return:
             outer_loss (Tensor): mean MAML loss over the batch, scalar
-            accuracies_support (ndarray): support set accuracy over the
-                course of the inner loop, averaged over the task batch
-                shape (num_inner_steps + 1,)
-            accuracy_query (float): query set accuracy of the adapted
-                parameters, averaged over the task batch
+            accuracies_support (ndarray): support set accuracy over the course of the inner loop,
+                averaged over the task batch shape (num_inner_steps + 1,)
+            accuracy_query (float): query set accuracy of the adapted parameters, averaged over the task batch
         """
         def apply_to_tensors(f, *tensors):
             for t in tensors:
@@ -194,16 +181,15 @@ class MAML:
         return outer_loss, accuracies_support, accuracy_query
 
     def train(self, dataloader_train, dataloader_val, writer):
-        """Train the MAML.
-
-        Consumes dataloader_train to optimize MAML meta-parameters
+        """
+        Train MAML.
+            Consmes dataloader_train to optimize MAML meta-parameters
         while periodically validating on dataloader_val, logging metrics, and
         saving checkpoints.
-
-        Args:
-            dataloader_train (DataLoader): loader for train tasks
-            dataloader_val (DataLoader): loader for validation tasks
-            writer (SummaryWriter): TensorBoard logger
+        :param [Dataloader] dataloader_train: Loader for training tasks
+        :param [Dataloader] dataloader_val: Loader for validation tasks
+        :param [SummaryWriter] writer: Tensorboard logger
+        :return:
         """
         print(f'Starting training at iteration {self._start_train_step}.')
         for i_step, task_batch in enumerate(
@@ -299,10 +285,11 @@ class MAML:
                 self._save(i_step)
 
     def test(self, dataloader_test, num_tasks_per_epoch):
-        """Evaluate the MAML on test tasks.
-
-        Args:
-            dataloader_test (DataLoader): loader for test tasks
+        """
+        Evaluate MAML on test tasks
+        :param [Dataloader] dataloader_test: Loader for test tasks (each task is subset of diseases)
+        :param [int] num_tasks_per_epoch: Number of test tasks
+        :return:
         """
         accuracies = []
         for task_batch in dataloader_test:
@@ -317,14 +304,12 @@ class MAML:
         )
 
     def load(self, checkpoint_step):
-        """Loads a checkpoint.
-
-        Args:
-            checkpoint_step (int): iteration of checkpoint to load
-
-        Raises:
-            ValueError: if checkpoint for checkpoint_step is not found
         """
+        Loads model checkpoint parameters
+        :param [int] checkpoint_step: iteration of checkpoint to load
+        :raises ValueError: if checkpoint for checkpoint_step is not found
+        """
+
         target_path = (
             f'{os.path.join(self._log_dir, "state")}'
             f'{checkpoint_step}.pt'
@@ -342,11 +327,12 @@ class MAML:
             )
 
     def _save(self, checkpoint_step):
-        """Saves parameters and optimizer state_dict as a checkpoint.
-
-        Args:
-            checkpoint_step (int): iteration to label checkpoint with
         """
+        Saves parameters and optimizer state_dictionary as a checkpoint
+        :param [int] checkpoint_step: Iteration with which to label checkpoint
+        :return:
+        """
+
         optimizer_state_dict = self._optimizer.state_dict()
         torch.save(
             dict(meta_parameters=self._meta_parameters,
