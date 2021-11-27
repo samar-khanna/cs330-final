@@ -28,6 +28,9 @@ class ChexpertDataset(dataset.Dataset):
         self.target_sampler = target_sampler
         self.uncertain_cleaner = uncertain_cleaner
 
+    def __len__(self):
+        return len(self.df)
+
     def __getitem__(self, class_idxs):
         """
         Get task given subset of indices
