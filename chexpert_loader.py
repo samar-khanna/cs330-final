@@ -16,12 +16,13 @@ class ChexpertDataset(dataset.Dataset):
                         'Pneumothorax', 'Pleural Effusion', 'Pleural Other', 'Fracture',
                         'Support Devices']
 
-    def __init__(self, data_path, path_to_csv, num_support, num_query,
+    def __init__(self, data_path, path_to_csv, num_support, num_query, num_new_targets,
                  uncertain_cleaner, target_sampler, im_size=(128, 128)):
         self.data_path = data_path
         self.df = pd.read_csv(path_to_csv)
         self.df['Path'] = self.df['Path'].apply(lambda p: p.replace('CheXpert-v1.0-small/', ''))
 
+        self.num_new_targets = num_new_targets
         self.num_support = num_support
         self.num_query = num_query
         self.im_size = im_size
@@ -37,8 +38,9 @@ class ChexpertDataset(dataset.Dataset):
         :param class_idxs:
         :return:
         """
-        # TODO: Fix for alpha-beta
-        known_class_idxs, unk_class_idxs = [], class_idxs  # (K,) and (U,)
+        U, K = self.num_new_targets, len(class_idxs) - self.num_new_targets
+        unk_class_idxs = np.random.choice(class_idxs, size=self.num_new_targets, replace=False)  # (K,)
+        known_class_idxs = np.array([i for i in class_idxs if i not in unk_class_idxs])  # (U,)
 
         # Bool mask indicating non-nan rows for at least one of the classes in unk_class
         class_valid_mask = np.zeros(len(self.df), dtype=np.bool)
@@ -48,11 +50,11 @@ class ChexpertDataset(dataset.Dataset):
 
         # Valid image paths corresponding to at least one of the classes in unk_class_idxs
         valid_paths = self.df['Path'][class_valid_mask].values
-        chexpert_classes = [self.chexpert_targets[c] for c in unk_class_idxs]
-        valid_labels = self.df[chexpert_classes][class_valid_mask].values  # (N, U)
+        chexpert_classes = [self.chexpert_targets[c] for c in known_class_idxs + unk_class_idxs]
+        valid_labels = self.df[chexpert_classes][class_valid_mask].values  # (N, K + U)
 
         # Replace uncertain labels (i.e. those with -1)
-        valid_labels = self.uncertain_cleaner.clean(valid_labels)  # (N, U)
+        valid_labels = self.uncertain_cleaner.clean(valid_labels)  # (N, K + U)
 
         # Sample num_support + num_query rows (i.e. image-label pairs) according to sampling strategy
         inds = self.target_sampler.sample(valid_labels, self.num_support + self.num_query)
@@ -63,18 +65,32 @@ class ChexpertDataset(dataset.Dataset):
         images_support = [self.load_image(os.path.join(self.data_path, p))
                           for p in im_paths_support]
         images_support = np.array(images_support, dtype=np.float32)  # (n_s, 1, h, w)
-        labels_support = np.array(valid_labels[support_inds])  # (n_s, U)
-        mask_support = ~np.isnan(labels_support)  # (n_s, U)
+        labels_support = np.array(valid_labels[support_inds])  # (n_s, K + U)
+        valid_support = ~np.isnan(labels_support)  # (n_s, K + U)
+        known_support = np.concatenate(
+            (valid_support[:, :K], np.zeros((valid_support.shape[0], U), dtype=np.bool)), axis=1
+        )
+        unknown_support = np.concatenate(
+            (np.zeros((valid_support.shape[0], K), dtype=np.bool), valid_support[:, K:]), axis=1
+        )
 
         im_paths_query = valid_paths[query_inds]
         images_query = [self.load_image(os.path.join(self.data_path, p))
                         for p in im_paths_query]
         images_query = np.array(images_query, dtype=np.float32)  # (n_q, 1, h, w)
-        labels_query = np.array(valid_labels[query_inds])  # (n_q, U)
-        mask_query = ~np.isnan(labels_query)  # (n_q, U)
+        labels_query = np.array(valid_labels[query_inds])  # (n_q, K + U)
+        valid_query = ~np.isnan(labels_query)  # (n_q, K + U)
+        known_query = np.concatenate(
+            (valid_query[:, :K], np.zeros((valid_query.shape[0], U), dtype=np.bool)), axis=1
+        )
+        unknown_query = np.concatenate(
+            (np.zeros((valid_query.shape[0], K), dtype=np.bool), valid_query[:, K:]), axis=1
+        )
 
-        return torch.from_numpy(images_support), torch.from_numpy(labels_support), torch.from_numpy(mask_support), \
-            torch.from_numpy(images_query), torch.from_numpy(labels_query), torch.from_numpy(mask_query)
+        return torch.from_numpy(images_support), torch.from_numpy(labels_support), \
+               torch.from_numpy(known_support), torch.from_numpy(unknown_support), \
+               torch.from_numpy(images_query), torch.from_numpy(labels_query), \
+               torch.from_numpy(known_query), torch.from_numpy(unknown_query)
 
     def load_image(self, im_path):
         # TODO: Should we normalize??
@@ -119,7 +135,8 @@ def get_chexpert_dataloader(
         data_path,
         batch_size,
         num_test_class,
-        num_targets_per_task,
+        total_targets_per_task,
+        unk_targets_per_task,
         num_support,
         num_query,
         num_tasks_per_train_epoch,
@@ -133,7 +150,8 @@ def get_chexpert_dataloader(
     :param data_path: Path to source directory with datasets
     :param batch_size: Size of each mini-batch
     :param num_test_class: Number of classes to withold in meta-test
-    :param num_targets_per_task: Number of novel classes to learn per task
+    :param total_targets_per_task: Number of known and novel classes to learn per task
+    :param unk_targets_per_task: Number of novel classes to learn per task
     :param num_support: Number of instances in support dataset
     :param num_query: Number of instances in query dataset
     :param num_tasks_per_train_epoch: Number of tasks to sample per training epoch
@@ -149,6 +167,7 @@ def get_chexpert_dataloader(
                                     os.path.join(data_path, 'train.csv'),
                                     num_support, 
                                     num_query,
+                                    unk_targets_per_task,
                                     uncertain_cleaner=uncertain_cleaner,
                                     target_sampler=target_sampler)
     # TODO: Add validation dataset
@@ -157,6 +176,7 @@ def get_chexpert_dataloader(
                                    os.path.join(data_path, 'valid.csv'),
                                    num_support, 
                                    num_query,
+                                   unk_targets_per_task,
                                    uncertain_cleaner=uncertain_cleaner,
                                    target_sampler=target_sampler)
 
@@ -171,7 +191,7 @@ def get_chexpert_dataloader(
     train_loader = dataloader.DataLoader(
         dataset=train_dataset,
         batch_size=batch_size,
-        sampler=ChexpertSampler(train_idxs, num_targets_per_task, num_tasks_per_train_epoch),
+        sampler=ChexpertSampler(train_idxs, total_targets_per_task, num_tasks_per_train_epoch),
         num_workers=2,
         collate_fn=identity,
         pin_memory=torch.cuda.is_available(),
@@ -181,7 +201,7 @@ def get_chexpert_dataloader(
     test_loader = dataloader.DataLoader(
         dataset=test_dataset,
         batch_size=batch_size,
-        sampler=ChexpertSampler(test_idxs, num_targets_per_task, num_tasks_per_test_epoch),
+        sampler=ChexpertSampler(test_idxs, total_targets_per_task, num_tasks_per_test_epoch),
         num_workers=2,
         collate_fn=identity,
         pin_memory=torch.cuda.is_available(),

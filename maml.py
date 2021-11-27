@@ -142,31 +142,28 @@ class MAML:
                 averaged over the task batch shape (num_inner_steps + 1,)
             accuracy_query (float): query set accuracy of the adapted parameters, averaged over the task batch
         """
-        def apply_to_tensors(f, *tensors):
-            for t in tensors:
-                f(t)
-
         outer_loss_batch = []
         accuracies_support_batch = []
         accuracy_query_batch = []
         for task in task_batch:
-            images_support, labels_support, mask_support,\
-            images_query, labels_query, mask_query = task
+            images_support, labels_support, known_support, unknown_support,\
+            images_query, labels_query, known_query, unknown_query = task
             images_support = images_support.to(DEVICE)
             labels_support = labels_support.to(DEVICE)
-            mask_support = mask_support.to(DEVICE)
+            unknown_support = unknown_support.to(DEVICE)
+
             images_query = images_query.to(DEVICE)
             labels_query = labels_query.to(DEVICE)
-            mask_query = mask_query.to(DEVICE)
+            unknown_query = unknown_query.to(DEVICE)
 
             # self._optimizer.zero_grad()
 
-            phi, accuracies = self._inner_loop(images_support, labels_support, mask_support, train)
+            phi, accuracies = self._inner_loop(images_support, labels_support, unknown_support, train)
 
             out = self._forward(images_query, phi)  # (N*Kq, N)
-            loss = self._loss(out, labels_query, mask_query)
+            loss = self._loss(out, labels_query, unknown_query)
 
-            query_acc = trainer_utils.score(out, labels_query, mask_query)
+            query_acc = trainer_utils.score(out, labels_query, unknown_query)
 
             outer_loss_batch.append(loss)
             accuracies_support_batch.append(accuracies)
@@ -370,7 +367,7 @@ def main(args):
     num_training_tasks = args.batch_size * (args.num_tasks - args.checkpoint_step - 1)
     num_testing_tasks = args.batch_size * 8
     train_loader, test_loader, test_idxs = chexpert_loader.get_chexpert_dataloader(
-        args.data_path, args.batch_size, args.num_test, args.num_targets,
+        args.data_path, args.batch_size, args.num_test, args.total_targets, args.num_targets,
         args.num_support, args.num_query, num_training_tasks, num_testing_tasks,
         uncertain_strategy=args.uncertain_cleaner, target_sampler_strategy=args.target_sampler,
         test_classes=args.test_classes
@@ -406,14 +403,16 @@ if __name__ == '__main__':
 
     parser.add_argument('--num_test', type=int, default=4,
                         help='Number of diseases to hold out for meta-test')
-    parser.add_argument('--num_targets', type=int, default=4,
-                        help='Number of diseases to sample for each task')
     parser.add_argument('--num_support', type=int, default=10,
                         help='Total number of samples for task support dataset')
     parser.add_argument('--num_query', type=int, default=16,
                         help='Total number of samples for task support dataset')
     parser.add_argument('--num_tasks', type=int, default=4000,
                         help='Total number of tasks to sample for training (eqv: num_train_iter)')
+    parser.add_argument('--total_targets', type=int, default=8,
+                        help='Total number of known and unknown diseases to sample for each task')
+    parser.add_argument('--num_targets', type=int, default=4,
+                        help='Number of new/unknown diseases to sample for each task')
     # parser.add_argument('--num_train_iterations', type=int, default=4000,
     #                     help='number of outer-loop updates to train for')
 
