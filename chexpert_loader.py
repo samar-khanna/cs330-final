@@ -50,7 +50,7 @@ class ChexpertDataset(dataset.Dataset):
 
         # Valid image paths corresponding to at least one of the classes in unk_class_idxs
         valid_paths = self.df['Path'][class_valid_mask].values
-        chexpert_classes = [self.chexpert_targets[c] for c in known_class_idxs + unk_class_idxs]
+        chexpert_classes = [self.chexpert_targets[c] for c in np.concatenate((known_class_idxs, unk_class_idxs))]
         valid_labels = self.df[chexpert_classes][class_valid_mask].values  # (N, K + U)
 
         # Replace uncertain labels (i.e. those with -1)
