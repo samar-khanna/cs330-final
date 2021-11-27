@@ -351,7 +351,7 @@ def main(args):
     writer = tensorboard.SummaryWriter(log_dir=log_dir)
 
     maml = MAML(
-        args.num_targets,
+        args.total_targets,
         args.num_inner_steps,
         args.inner_lr,
         args.learn_inner_lrs,
