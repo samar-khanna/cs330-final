@@ -39,8 +39,8 @@ class ChexpertDataset(dataset.Dataset):
         :return:
         """
         U, K = self.num_new_targets, len(class_idxs) - self.num_new_targets
-        unk_class_idxs = np.random.choice(class_idxs, size=self.num_new_targets, replace=False)  # (K,)
-        known_class_idxs = np.array([i for i in class_idxs if i not in unk_class_idxs])  # (U,)
+        unk_class_idxs = np.random.choice(class_idxs, size=U, replace=False).astype(np.int)  # (U,)
+        known_class_idxs = np.array([i for i in class_idxs if i not in unk_class_idxs], dtype=np.int)  # (K,)
 
         # Bool mask indicating non-nan rows for at least one of the classes in unk_class
         class_valid_mask = np.zeros(len(self.df), dtype=np.bool)
