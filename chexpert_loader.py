@@ -198,10 +198,11 @@ def get_chexpert_dataloader(
         drop_last=True
     )
 
+    # TODO: Fix unk_targets_per_task to be able to know known diseases during test time
     test_loader = dataloader.DataLoader(
         dataset=test_dataset,
         batch_size=batch_size,
-        sampler=ChexpertSampler(test_idxs, total_targets_per_task, num_tasks_per_test_epoch),
+        sampler=ChexpertSampler(test_idxs, unk_targets_per_task, num_tasks_per_test_epoch),
         num_workers=2,
         collate_fn=identity,
         pin_memory=torch.cuda.is_available(),
