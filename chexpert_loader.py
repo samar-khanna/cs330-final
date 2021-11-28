@@ -42,7 +42,9 @@ class ChexpertDataset(dataset.Dataset):
         :param class_idxs:
         :return:
         """
-        U, K = self.num_new_targets, len(class_idxs) - self.num_new_targets
+        # If test_targets are specified, known classes are exactly those in class_idxs
+        U = self.num_new_targets
+        K = len(class_idxs) if self.test_targets is not None else len(class_idxs) - self.num_new_targets
         unk_class_idxs = self.test_targets if self.test_targets is not None else \
             np.random.choice(class_idxs, size=U, replace=False).astype(np.int)  # (U,)
         known_class_idxs = np.array([i for i in class_idxs if i not in unk_class_idxs], dtype=np.int)  # (K,)
