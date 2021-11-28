@@ -73,7 +73,9 @@ class AlphaMAML(MAML):
             known_query = known_query.to(DEVICE)
             unknown_query = unknown_query.to(DEVICE)
 
-            phi, accuracies = self._inner_loop(images_support, labels_support, known_support | unknown_support, train)
+            parameters = {k: torch.clone(v) for k, v in self._meta_parameters.items()}
+            phi, accuracies = self._inner_loop(parameters, images_support, labels_support,
+                                               known_support | unknown_support, train)
 
             phi, _ = self._alpha_inner_loop(phi, images_query, labels_query, known_query, train)
 

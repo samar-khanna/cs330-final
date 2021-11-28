@@ -95,9 +95,10 @@ class MAML:
         loss = unreduced[keep_mask]
         return loss.mean()
 
-    def _inner_loop(self, images, labels, keep_mask, train):   # pylint: disable=unused-argument
+    def _inner_loop(self, parameters, images, labels, keep_mask, train):   # pylint: disable=unused-argument
         """
         Computes adapted network parameters via MAML inner loop
+        :param parameters: {param_name -> Tensor} Model parameters to update in inner loop
         :param images: (N_s, c, h, w) Task support set inputs
         :param labels: (N_s, n_t) Task support set labels (i.e. targets)
         :param keep_mask: (N_s, n_t) Boolean mask of valid labels for which to compute loss
@@ -108,10 +109,6 @@ class MAML:
                 the inner loop, length num_inner_steps + 1
         """
         accuracies = []
-        parameters = {
-            k: torch.clone(v)
-            for k, v in self._meta_parameters.items()
-        }
 
         for i in range(self._num_inner_steps):
             out = self._forward(images, parameters)  # (N_s, U)
@@ -158,7 +155,8 @@ class MAML:
 
             # self._optimizer.zero_grad()
 
-            phi, accuracies = self._inner_loop(images_support, labels_support, unknown_support, train)
+            parameters = {k: torch.clone(v) for k, v in self._meta_parameters.items()}
+            phi, accuracies = self._inner_loop(parameters, images_support, labels_support, unknown_support, train)
 
             out = self._forward(images_query, phi)  # (N*Kq, N)
             loss = self._loss(out, labels_query, unknown_query)
