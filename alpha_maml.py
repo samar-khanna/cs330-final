@@ -73,8 +73,6 @@ class AlphaMAML(MAML):
             known_query = known_query.to(DEVICE)
             unknown_query = unknown_query.to(DEVICE)
 
-            # self._optimizer.zero_grad()
-
             phi, accuracies = self._inner_loop(images_support, labels_support, known_support | unknown_support, train)
 
             phi, _ = self._alpha_inner_loop(phi, images_query, labels_query, known_query, train)
@@ -125,12 +123,15 @@ def main(args):
     else:
         print('Checkpoint loading skipped.')
 
+    target_sampler_strategy = 'at_least_k' if args.total_targets <= args.num_targets else args.target_sampler
+
     num_training_tasks = args.batch_size * (args.num_tasks - args.checkpoint_step - 1)
     num_testing_tasks = args.batch_size * 8
+
     train_loader, test_loader, test_idxs = chexpert_loader.get_chexpert_dataloader(
         args.data_path, args.batch_size, args.total_targets, args.num_targets,
         args.num_support, args.num_query, num_training_tasks, num_testing_tasks,
-        uncertain_strategy=args.uncertain_cleaner, target_sampler_strategy=args.target_sampler,
+        uncertain_strategy=args.uncertain_cleaner, target_sampler_strategy=target_sampler_strategy,
         test_classes=args.test_classes
     )
 
@@ -179,7 +180,7 @@ if __name__ == '__main__':
                         help='Specify indices of custom test classes to hold out')
     parser.add_argument('--uncertain_cleaner', default='positive', type=str,
                         help='Specify how to replace uncertain targets in dataset')
-    parser.add_argument('--target_sampler', default='at_least_k', type=str,
+    parser.add_argument('--target_sampler', default='known_unknown', type=str,
                         help='Specify how to sample targets for a task')
 
     parser.add_argument('--num_inner_steps', type=int, default=1,

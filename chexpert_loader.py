@@ -64,7 +64,7 @@ class ChexpertDataset(dataset.Dataset):
         valid_labels = self.uncertain_cleaner.clean(valid_labels)  # (N, K + U)
 
         # Sample num_support + num_query rows (i.e. image-label pairs) according to sampling strategy
-        inds = self.target_sampler.sample(valid_labels, self.num_support + self.num_query)
+        inds = self.target_sampler.sample(valid_labels, self.num_support + self.num_query, list(range(K, K+U)))
         support_inds = inds[:self.num_support]
         query_inds = inds[self.num_support:]
 
