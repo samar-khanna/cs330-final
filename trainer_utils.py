@@ -15,6 +15,7 @@ def score(logits, labels, label_mask):
     assert logits.dim() == 2
     assert labels.dim() == 2
     assert logits.shape[0] == labels.shape[0]
+    labels = labels.clone()
     labels[~label_mask] = 0.
     preds = logits >= 0.
     tp = (labels == preds)[label_mask.type(torch.bool)].type(torch.float)
