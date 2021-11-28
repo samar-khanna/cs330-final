@@ -17,5 +17,5 @@ def score(logits, labels, label_mask):
     assert logits.shape[0] == labels.shape[0]
     labels[~label_mask] = 0.
     preds = logits >= 0.
-    tp = label_mask * (labels == preds).type(torch.float)
+    tp = (labels == preds)[label_mask.type(torch.bool)].type(torch.float)
     return torch.mean(tp).item()
