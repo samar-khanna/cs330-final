@@ -401,8 +401,6 @@ if __name__ == '__main__':
     parser.add_argument('--log_dir', type=str, default=None,
                         help='directory to save to or load from')
 
-    parser.add_argument('--num_test', type=int, default=4,
-                        help='Number of diseases to hold out for meta-test')
     parser.add_argument('--num_support', type=int, default=10,
                         help='Total number of samples for task support dataset')
     parser.add_argument('--num_query', type=int, default=16,
