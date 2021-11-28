@@ -189,7 +189,7 @@ if __name__ == '__main__':
                         help='inner-loop learning rate initialization')
     parser.add_argument('--alpha_inner_steps', type=int, default=1,
                         help='number of alpha inner-loop updates')
-    parser.add_argument('--alpha_inner_lr', type=int, default=0.1,
+    parser.add_argument('--alpha_inner_lr', type=float, default=0.1,
                         help='alpha inner-loop learning rate initialization')
     parser.add_argument('--learn_inner_lrs', default=False, action='store_true',
                         help='whether to optimize inner-loop learning rates')
