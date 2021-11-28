@@ -367,7 +367,7 @@ def main(args):
     num_training_tasks = args.batch_size * (args.num_tasks - args.checkpoint_step - 1)
     num_testing_tasks = args.batch_size * 8
     train_loader, test_loader, test_idxs = chexpert_loader.get_chexpert_dataloader(
-        args.data_path, args.batch_size, args.num_targets, args.total_targets, args.num_targets,
+        args.data_path, args.batch_size, args.total_targets, args.num_targets,
         args.num_support, args.num_query, num_training_tasks, num_testing_tasks,
         uncertain_strategy=args.uncertain_cleaner, target_sampler_strategy=args.target_sampler,
         test_classes=args.test_classes
