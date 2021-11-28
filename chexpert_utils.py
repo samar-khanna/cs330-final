@@ -61,8 +61,8 @@ class KnownUnknownTargetSampler(KTargetSampler):
         :return: (num_samples,) indices in labels that form the task
         """
         known_idxs = [i for i in range(labels.shape[1]) if i not in unk_idxs]
-        known_valid = np.sum(~np.isnan(labels[:, known_idxs])) >= self.k
-        unknown_valid = np.sum(~np.isnan(labels[:, unk_idxs])) >= self.k
+        known_valid = np.sum(~np.isnan(labels[:, known_idxs]), axis=1) >= self.k
+        unknown_valid = np.sum(~np.isnan(labels[:, unk_idxs]), axis=1) >= self.k
         possible, = np.nonzero(known_valid & unknown_valid)
         if len(possible) >= num_samples:
             inds = np.random.choice(possible, size=num_samples, replace=False)
