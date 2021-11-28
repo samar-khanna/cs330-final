@@ -17,12 +17,16 @@ class ChexpertDataset(dataset.Dataset):
                         'Support Devices']
 
     def __init__(self, data_path, path_to_csv, num_support, num_query, num_new_targets,
-                 uncertain_cleaner, target_sampler, im_size=(128, 128)):
+                 uncertain_cleaner, target_sampler, test_targets=None, im_size=(128, 128)):
         self.data_path = data_path
         self.df = pd.read_csv(path_to_csv)
         self.df['Path'] = self.df['Path'].apply(lambda p: p.replace('CheXpert-v1.0-small/', ''))
 
         self.num_new_targets = num_new_targets
+        self.test_targets = test_targets
+        if test_targets is not None:
+            self.num_new_targets = len(test_targets)
+
         self.num_support = num_support
         self.num_query = num_query
         self.im_size = im_size
@@ -39,7 +43,8 @@ class ChexpertDataset(dataset.Dataset):
         :return:
         """
         U, K = self.num_new_targets, len(class_idxs) - self.num_new_targets
-        unk_class_idxs = np.random.choice(class_idxs, size=U, replace=False).astype(np.int)  # (U,)
+        unk_class_idxs = self.test_targets if self.test_targets is not None else \
+            np.random.choice(class_idxs, size=U, replace=False).astype(np.int)  # (U,)
         known_class_idxs = np.array([i for i in class_idxs if i not in unk_class_idxs], dtype=np.int)  # (K,)
 
         # Bool mask indicating non-nan rows for at least one of the classes in unk_class
@@ -134,7 +139,6 @@ def identity(x):
 def get_chexpert_dataloader(
         data_path,
         batch_size,
-        num_test_class,
         total_targets_per_task,
         unk_targets_per_task,
         num_support,
@@ -149,7 +153,6 @@ def get_chexpert_dataloader(
     Returns the train/val/test dataloaders for Chexpert
     :param data_path: Path to source directory with datasets
     :param batch_size: Size of each mini-batch
-    :param num_test_class: Number of classes to withold in meta-test
     :param total_targets_per_task: Number of known and novel classes to learn per task
     :param unk_targets_per_task: Number of novel classes to learn per task
     :param num_support: Number of instances in support dataset
@@ -177,6 +180,7 @@ def get_chexpert_dataloader(
                                    num_support, 
                                    num_query,
                                    unk_targets_per_task,
+                                   test_targets=test_classes,
                                    uncertain_cleaner=uncertain_cleaner,
                                    target_sampler=target_sampler)
 
@@ -184,7 +188,7 @@ def get_chexpert_dataloader(
     if test_classes is not None:
         test_idxs = test_classes
     else:
-        test_idxs = np.random.choice(len(classes), num_test_class, replace=False)
+        test_idxs = np.random.choice(len(classes), unk_targets_per_task, replace=False)
 
     train_idxs = [i for i in range(len(classes)) if i not in test_idxs]
 
@@ -199,10 +203,13 @@ def get_chexpert_dataloader(
     )
 
     # TODO: Fix unk_targets_per_task to be able to know known diseases during test time
+    # TODO: Make work for different numbers of unk targets and total targets
     test_loader = dataloader.DataLoader(
         dataset=test_dataset,
         batch_size=batch_size,
-        sampler=ChexpertSampler(test_idxs, unk_targets_per_task, num_tasks_per_test_epoch),
+        # Note: we use train_idxs coz test dataset already has hard-set test classes which will always
+        # form the U unknown targets.
+        sampler=ChexpertSampler(train_idxs, total_targets_per_task-unk_targets_per_task, num_tasks_per_test_epoch),
         num_workers=2,
         collate_fn=identity,
         pin_memory=torch.cuda.is_available(),

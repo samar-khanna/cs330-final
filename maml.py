@@ -343,7 +343,7 @@ class MAML:
 def main(args):
     log_dir = args.log_dir
     if log_dir is None:
-        log_dir = f'./logs/maml/chexpert.test:{args.num_test}.targets:{args.num_targets}.tasks:{args.num_tasks}' \
+        log_dir = f'./logs/maml/chexpert.targets:{args.num_targets}.tasks:{args.num_tasks}' \
                   f'.support:{args.num_support}.query:{args.num_query}.inner_steps:{args.num_inner_steps}' \
                   f'.inner_lr:{args.inner_lr}.learn_inner_lrs:{args.learn_inner_lrs}.outer_lr:{args.outer_lr}' \
                   f'.batch_size:{args.batch_size}'
@@ -367,7 +367,7 @@ def main(args):
     num_training_tasks = args.batch_size * (args.num_tasks - args.checkpoint_step - 1)
     num_testing_tasks = args.batch_size * 8
     train_loader, test_loader, test_idxs = chexpert_loader.get_chexpert_dataloader(
-        args.data_path, args.batch_size, args.num_test, args.total_targets, args.num_targets,
+        args.data_path, args.batch_size, args.num_targets, args.total_targets, args.num_targets,
         args.num_support, args.num_query, num_training_tasks, num_testing_tasks,
         uncertain_strategy=args.uncertain_cleaner, target_sampler_strategy=args.target_sampler,
         test_classes=args.test_classes
@@ -376,7 +376,7 @@ def main(args):
     diseases = chexpert_loader.ChexpertDataset.chexpert_targets
     if not args.test:
         print(
-            f'Num test classes {args.num_test}: {[diseases[i] for i in test_idxs]}\n'
+            f'Num test classes {args.num_targets}: {[diseases[i] for i in test_idxs]}\n'
             f'Training on {args.num_tasks} tasks per epoch with composition: '
             f'num_targets_per_task={args.num_targets}, '
             f'num_support={args.num_support}, '
@@ -386,7 +386,7 @@ def main(args):
         maml.train(train_loader, test_loader, writer)
     else:
         print(
-            f'Num test classes {args.num_test}: {[diseases[i] for i in test_idxs]}'
+            f'Num test classes {args.num_targets}: {[diseases[i] for i in test_idxs]}'
             f'num_targets_per_task={args.num_targets}, '
             f'num_support={args.num_support}, '
             f'num_query={args.num_query}'
