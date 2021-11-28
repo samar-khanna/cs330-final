@@ -92,7 +92,7 @@ class MAML:
         gt = gt.clone()
         gt[~keep_mask] = 0.  # Arbitrary since these are masked out anyhoo
         unreduced = F.binary_cross_entropy_with_logits(pred, gt, reduction='none')
-        loss = unreduced * keep_mask
+        loss = unreduced[keep_mask]
         return loss.mean()
 
     def _inner_loop(self, images, labels, keep_mask, train):   # pylint: disable=unused-argument
