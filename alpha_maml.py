@@ -100,11 +100,15 @@ class AlphaMAML(MAML):
 def main(args):
     log_dir = args.log_dir
     if log_dir is None:
-        log_dir = f'./logs/amaml/chexpert.targets:{args.num_targets}.tasks:{args.num_tasks}' \
+        test_class_str = '-'.join([str(i) for i in args.test_classes]) \
+            if args.test_classes is not None else 'random'
+        log_dir = f'./logs/amaml/chexpert.tasks:{args.num_tasks}.test:{test_class_str}' \
+                  f'.new_targets:{args.num_targets}.total_targets{args.total_targets}' \
                   f'.support:{args.num_support}.query:{args.num_query}' \
                   f'.inner_steps:{args.num_inner_steps}.inner_lr:{args.inner_lr}' \
                   f'.alpha_inner_steps:{args.alpha_inner_steps}.alpha_inner_lr:{args.alpha_inner_lr}' \
                   f'.learn_inner_lrs:{args.learn_inner_lrs}.outer_lr:{args.outer_lr}' \
+                  f'.uncertain:{args.uncertain_cleaner}.target_sampler:{args.target_sampler}' \
                   f'.batch_size:{args.batch_size}'
     print(f'log_dir: {log_dir}')
     writer = tensorboard.SummaryWriter(log_dir=log_dir)
