@@ -43,7 +43,7 @@ class AlphaMAML(MAML):
 
             grad = autograd.grad(loss, phi.values(), create_graph=train)
             for (k, p), g in zip(phi.items(), grad):
-                phi[k] = p - self._inner_lrs[k]*g
+                phi[k] = p - self._alpha_inner_lrs[k]*g
 
             score = trainer_utils.score(out, labels_query, known_query)
             accuracies.append(score)
