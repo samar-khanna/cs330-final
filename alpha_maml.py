@@ -73,8 +73,8 @@ class AlphaMAML(MAML):
             known_query = known_query.to(DEVICE)
             unknown_query = unknown_query.to(DEVICE)
 
-            parameters = {k: torch.clone(v) for k, v in self._meta_parameters.items()}
-            phi, accuracies = self._inner_loop(parameters, images_support, labels_support,
+            phi = {k: torch.clone(v) for k, v in self._meta_parameters.items()}
+            phi, accuracies = self._inner_loop(phi, images_support, labels_support,
                                                known_support | unknown_support, train)
 
             phi, _ = self._alpha_inner_loop(phi, images_query, labels_query, known_query, train)
@@ -103,7 +103,7 @@ def main(args):
         test_class_str = '-'.join([str(i) for i in args.test_classes]) \
             if args.test_classes is not None else 'random'
         log_dir = f'./logs/amaml/chexpert.tasks:{args.num_tasks}.test:{test_class_str}' \
-                  f'.new_targets:{args.num_targets}.total_targets{args.total_targets}' \
+                  f'.new_targets:{args.num_targets}.total_targets:{args.total_targets}' \
                   f'.support:{args.num_support}.query:{args.num_query}' \
                   f'.inner_steps:{args.num_inner_steps}.inner_lr:{args.inner_lr}' \
                   f'.alpha_inner_steps:{args.alpha_inner_steps}.alpha_inner_lr:{args.alpha_inner_lr}' \
