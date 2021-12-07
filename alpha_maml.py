@@ -106,8 +106,8 @@ def main(args):
                   f'.new_targets:{args.num_targets}.total_targets:{args.total_targets}' \
                   f'.support:{args.num_support}.query:{args.num_query}' \
                   f'.inner_steps:{args.num_inner_steps}.inner_lr:{args.inner_lr}' \
-                  f'.alpha_inner_steps:{args.alpha_inner_steps}.alpha_inner_lr:{args.alpha_inner_lr}' \
-                  f'.learn_inner_lrs:{args.learn_inner_lrs}.outer_lr:{args.outer_lr}' \
+                  f'.alpha_steps:{args.alpha_inner_steps}.alpha_lr:{args.alpha_inner_lr}' \
+                  f'.learn_lrs:{args.learn_inner_lrs}.outer_lr:{args.outer_lr}' \
                   f'.uncertain:{args.uncertain_cleaner}.target_sampler:{args.target_sampler}' \
                   f'.batch_size:{args.batch_size}'
     print(f'log_dir: {log_dir}')
