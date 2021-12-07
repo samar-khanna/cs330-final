@@ -175,7 +175,7 @@ if __name__ == '__main__':
                         help='Total number of samples for task support dataset')
     parser.add_argument('--num_tasks', type=int, default=4000,
                         help='Total number of tasks to sample for training (eqv: num_train_iter)')
-    parser.add_argument('--total_targets', type=int, default=10,
+    parser.add_argument('--total_targets', type=int, default=8,
                         help='Total number of known and unknown diseases to sample for each task')
     parser.add_argument('--num_targets', type=int, default=4,
                         help='Number of new/unknown diseases to sample for each task')

@@ -10,14 +10,12 @@ from chexpert_utils import get_uncertain_cleaner, get_target_sampler
 
 
 class ChexpertDataset(dataset.Dataset):
-    chexpert_targets = ['No Finding',
-                        'Enlarged Cardiomediastinum', 'Cardiomegaly', 'Lung Opacity',
+    chexpert_targets = ['Enlarged Cardiomediastinum', 'Cardiomegaly', 'Lung Opacity',
                         'Lung Lesion', 'Edema', 'Consolidation', 'Pneumonia', 'Atelectasis',
-                        'Pneumothorax', 'Pleural Effusion', 'Pleural Other', 'Fracture',
-                        'Support Devices']
+                        'Pneumothorax', 'Pleural Effusion', 'Pleural Other', 'Fracture']
 
     def __init__(self, data_path, path_to_csv, num_support, num_query, num_new_targets,
-                 uncertain_cleaner, target_sampler, test_targets=None, im_size=(128, 128)):
+                 uncertain_cleaner, target_sampler, test_targets=None, im_size=(96, 96)):
         self.data_path = data_path
         self.df = pd.read_csv(path_to_csv)
         self.df['Path'] = self.df['Path'].apply(lambda p: p.replace('CheXpert-v1.0-small/', ''))
