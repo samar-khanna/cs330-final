@@ -77,7 +77,7 @@ class AlphaMAML(MAML):
             phi_inner, accuracies = self._inner_loop(_phi, images_support, labels_support,
                                                      known_support | unknown_support, train)
 
-            _phi = {k: torch.clone(v) for k, v in self._meta_parameters.items()}
+            # _phi = {k: torch.clone(v) for k, v in self._meta_parameters.items()}
             phi_alpha, _ = self._alpha_inner_loop(_phi, images_query, labels_query, known_query, train)
 
             phi = {k: phi_inner[k] + phi_alpha[k] - _phi[k] for k in _phi}
